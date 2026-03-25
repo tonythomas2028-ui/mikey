@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event System</title>
+
+<style>
+body {
+    font-family: Arial;
+    color: #0f172a;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+
+    background: linear-gradient(270deg, #ffffff, #7dd3fc, #ffffff, #7dd3fc);
+    background-size: 400% 400%;
+    animation: gradientMove 10s linear infinite;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.card {
+    background: rgba(255,255,255,0.95);
+    padding:24px;
+    border-radius:14px;
+    width:360px;
+    box-shadow: 0 10px 30px rgba(56,189,248,0.2);
+}
+
+/* INTRO */
+.intro {
+    text-align:center;
+    margin-bottom:18px;
+}
+
+.intro h2 {
+    margin-bottom:8px;
+}
+
+.intro p {
+    font-size:13px;
+    color:#475569;
+    line-height:1.4;
+}
+
+h3 {
+    text-align:center;
+    margin-bottom:15px;
+}
+
+input, select {
+    width:100%;
+    padding:10px;
+    margin-bottom:12px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+button {
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#38bdf8;
+    color:white;
+    font-weight:bold;
+    transition:0.2s;
+}
+
+button:hover {
+    background:#0ea5e9;
+    transform: scale(1.03);
+}
+
+.admin-btn {
+    background: linear-gradient(to right,#ef4444,#b91c1c);
+}
+
+.button-row {
+    display:flex;
+    gap:10px;
+}
+
+.button-row button {
+    flex:1;
+}
+
+.admin-header {
+    background:#ef4444;
+    color:white;
+    padding:12px;
+    border-radius:10px;
+    text-align:center;
+    margin-bottom:12px;
+}
+
+.admin-card {
+    background:white;
+    padding:12px;
+    border-radius:10px;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:10px;
+}
+
+th, td {
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:center;
+}
+
+.hidden { display:none; }
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<!-- INTRO -->
+
+<div class="intro">
+    <h2>Event Registration Portal</h2>
+    <p>
+    Explore and register for events designed to test your skills and creativity.
+    </p>
+</div>
+
+<div id="choice">
+<h3>Continue As</h3>
+<button onclick="choose('new')">New User</button>
+<button onclick="choose('existing')">Registered User</button>
+<button class="admin-btn" onclick="choose('admin')">Admin</button>
+</div>
+
+<div id="login" class="hidden">
+<h3 id="title"></h3>
+<input id="name" placeholder="Enter Name">
+<input id="pass" type="password" placeholder="Enter Password">
+<button id="continueBtn" onclick="process()">Continue</button>
+<button onclick="back()">Back</button>
+<p id="msg"></p>
+</div>
+
+<div id="event" class="hidden">
+<h3>Select Event</h3>
+<select id="eventSelect">
+<option value="">Choose</option>
+<option>Hackathon</option>
+<option>AI Challenge</option>
+<option>Gaming Tournament</option>
+<option>Cultural Fest</option>
+</select>
+<button onclick="save()">Register</button>
+<button onclick="back()">Back</button>
+<p id="msg2"></p>
+</div>
+
+<div id="admin" class="hidden">
+<div class="admin-header">Admin Dashboard</div>
+
+<div class="admin-card">
+<table>
+<thead><tr><th>Name</th><th>Event</th></tr></thead>
+<tbody id="data"></tbody>
+</table>
+
+<p id="emptyMsg"></p>
+
+<div class="button-row">
+<button onclick="clearAll()">Clear All</button>
+<button onclick="back()">Back</button>
+</div>
+
+</div>
+</div>
+
+</div>
+
+<script>
+let mode="", current="";
+let hoverTimer;
+
+function getData(){
+    return JSON.parse(localStorage.getItem("students")) || [];
+}
+function saveData(d){
+    localStorage.setItem("students", JSON.stringify(d));
+}
+
+function choose(t){
+    mode = t;
+    document.getElementById("choice").classList.add("hidden");
+    document.getElementById("login").classList.remove("hidden");
+    document.getElementById("msg").innerText = "";
+
+    if(t==="admin") document.getElementById("title").innerText="Admin Login";
+    if(t==="new") document.getElementById("title").innerText="New User";
+    if(t==="existing") document.getElementById("title").innerText="Registered User";
+}
+
+function process(){
+    let name = document.getElementById("name").value.trim();
+    let pass = document.getElementById("pass").value.trim();
+    let msg = document.getElementById("msg");
+    let data = getData();
+
+    msg.innerText = "";
+
+    if(mode==="admin"){
+        if(name==="admin" && pass==="1234"){
+            document.getElementById("login").classList.add("hidden");
+            document.getElementById("admin").classList.remove("hidden");
+            loadTable();
+        } else {
+            msg.innerText="Wrong admin login";
+        }
+        return;
+    }
+
+    if(name==="" || pass===""){
+        msg.innerText="Enter name & password";
+        return;
+    }
+
+    let user = data.find(x=>x.name===name);
+
+    if(mode==="new"){
+        if(user){
+            msg.innerText="Already exists";
+        } else {
+            current=name;
+            data.push({name:name,password:pass,event:""});
+            saveData(data);
+            gotoEvent();
+        }
+    }
+
+    if(mode==="existing"){
+        if(!user){
+            msg.innerText="User not found";
+        } else if(user.password!==pass){
+            msg.innerText="Wrong password";
+        } else {
+            current=name;
+            gotoEvent(user.event);
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("continueBtn");
+
+    btn.addEventListener("mouseenter", () => {
+        hoverTimer = setTimeout(() => {
+            process();
+        }, 600);
+    });
+
+    btn.addEventListener("mouseleave", () => {
+        clearTimeout(hoverTimer);
+    });
+});
+
+function gotoEvent(e){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("event").classList.remove("hidden");
+    document.getElementById("eventSelect").value = e || "";
+}
+
+function save(){
+    let ev = document.getElementById("eventSelect").value;
+    let msg = document.getElementById("msg2");
+    let data = getData();
+
+    if(ev===""){
+        msg.innerText="Select event";
+        return;
+    }
+
+    let i = data.findIndex(x=>x.name===current);
+    data[i].event = ev;
+
+    saveData(data);
+
+    msg.innerText="Registered successfully!";
+    setTimeout(()=>location.reload(),1000);
+}
+
+function loadTable(){
+    let data = getData();
+    let t = document.getElementById("data");
+    let empty = document.getElementById("emptyMsg");
+
+    t.innerHTML="";
+
+    if(data.length===0){
+        empty.innerText="No registrations yet";
+        return;
+    } else {
+        empty.innerText="";
+    }
+
+    data.forEach(x=>{
+        t.innerHTML += `<tr><td>${x.name}</td><td>${x.event || "-"}</td></tr>`;
+    });
+}
+
+function clearAll(){
+    localStorage.removeItem("students");
+    loadTable();
+}
+
+function back(){
+    location.reload();
+}
+</script>
+
+</body>
+</html>
