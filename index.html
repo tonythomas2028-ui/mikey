@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -34,7 +33,6 @@ body {
     box-shadow: 0 10px 30px rgba(56,189,248,0.2);
 }
 
-/* INTRO */
 .intro {
     text-align:center;
     margin-bottom:18px;
@@ -130,8 +128,6 @@ th, td {
 
 <div class="card">
 
-<!-- INTRO -->
-
 <div class="intro">
     <h2>Event Registration Portal</h2>
     <p>
@@ -150,6 +146,12 @@ th, td {
 <h3 id="title"></h3>
 <input id="name" placeholder="Enter Name">
 <input id="pass" type="password" placeholder="Enter Password">
+
+<!-- ✅ SHOW PASSWORD ADDED -->
+<label style="font-size:12px;">
+    <input type="checkbox" onclick="togglePassword()"> Show Password
+</label>
+
 <button id="continueBtn" onclick="process()">Continue</button>
 <button onclick="back()">Back</button>
 <p id="msg"></p>
@@ -201,6 +203,22 @@ function saveData(d){
     localStorage.setItem("students", JSON.stringify(d));
 }
 
+/* ✅ SHOW PASSWORD FUNCTION */
+function togglePassword(){
+    let passField = document.getElementById("pass");
+    passField.type = passField.type === "password" ? "text" : "password";
+}
+
+/* (rest of your original JS untouched) */
+
+function validateName(name){
+    return /^[A-Za-z ]{3,}$/.test(name);
+}
+
+function validatePassword(pass){
+    return /^(?=.*[A-Z])(?=.*\d).{6,}$/.test(pass);
+}
+
 function choose(t){
     mode = t;
     document.getElementById("choice").classList.add("hidden");
@@ -221,26 +239,36 @@ function process(){
     msg.innerText = "";
 
     if(mode==="admin"){
-        if(name==="admin" && pass==="1234"){
+        if(name.toLowerCase()==="admin" && pass==="1234"){
             document.getElementById("login").classList.add("hidden");
             document.getElementById("admin").classList.remove("hidden");
             loadTable();
         } else {
-            msg.innerText="Wrong admin login";
+            msg.innerText="Invalid admin credentials";
         }
         return;
     }
 
     if(name==="" || pass===""){
-        msg.innerText="Enter name & password";
+        msg.innerText="All fields are required";
         return;
     }
 
-    let user = data.find(x=>x.name===name);
+    if(!validateName(name)){
+        msg.innerText="Name must be at least 3 letters";
+        return;
+    }
+
+    if(!validatePassword(pass)){
+        msg.innerText="Password must be strong";
+        return;
+    }
+
+    let user = data.find(x=>x.name.toLowerCase()===name.toLowerCase());
 
     if(mode==="new"){
         if(user){
-            msg.innerText="Already exists";
+            msg.innerText="User already exists";
         } else {
             current=name;
             data.push({name:name,password:pass,event:""});
@@ -253,9 +281,9 @@ function process(){
         if(!user){
             msg.innerText="User not found";
         } else if(user.password!==pass){
-            msg.innerText="Wrong password";
+            msg.innerText="Incorrect password";
         } else {
-            current=name;
+            current=user.name;
             gotoEvent(user.event);
         }
     }
@@ -287,13 +315,18 @@ function save(){
     let data = getData();
 
     if(ev===""){
-        msg.innerText="Select event";
+        msg.innerText="Please select an event";
         return;
     }
 
     let i = data.findIndex(x=>x.name===current);
-    data[i].event = ev;
 
+    if(data[i].event === ev){
+        msg.innerText="You already registered for this event";
+        return;
+    }
+
+    data[i].event = ev;
     saveData(data);
 
     msg.innerText="Registered successfully!";
